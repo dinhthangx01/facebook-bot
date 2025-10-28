@@ -13,7 +13,7 @@ GEMINI_API_KEY = os.getenv("GAIzaSyDkg1LFm2xqE97UhCocWY3vz6UBIDRE_HU")
 
 # Cấu hình Gemini
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 @app.route("/", methods=["GET"])
 def home():
@@ -61,3 +61,4 @@ def send_message(recipient_id, text):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
