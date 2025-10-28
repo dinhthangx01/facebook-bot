@@ -8,9 +8,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
-PAGE_ACCESS_TOKEN = os.getenv("EAAZAqqAFmC2IBP8vpzMHGSXaGVURXb6fgpTLsZBWtGQpq4jV0WYf0c6BUrttoWL6xy7hE0qjH6E93gJELrrxiPOMSwQdZCGjyiZBnQZBcT6o0ybayyKlGG6WZA3Ob7lu3brj39qXWebcHel3LC2cMDBsaVEZB3PFIunYpqB49ZCq8nXFljV0V1Kap2rWjGok0kDBTDm0XkaikjZC5IdPvnWfvS2YMJQZDZD")
-VERIFY_TOKEN = os.getenv("123abc")
-GEMINI_API_KEY = os.getenv("AIzaSyDkg1LFm2xqE97UhCocWY3vz6UBIDRE_HU")
+PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # --- CẤU HÌNH GEMINI ---
 genai.configure(api_key=GEMINI_API_KEY)
@@ -72,3 +72,4 @@ def send_message(recipient_id, text):
 # --- CHẠY ỨNG DỤNG FLASK ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
