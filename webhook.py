@@ -1,76 +1,63 @@
 from flask import Flask, request
-import requests
+import requests, os
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-# ======= THÔNG TIN CỦA BẠN (điền vào đây) =======
-VERIFY_TOKEN = "123abc"   # Token xác minh webhook với Facebook
-PAGE_ACCESS_TOKEN = "EAAZAqqAFmC2IBPZBJHVzvgv9UGjQZB3AIaFSIRJmSNngSrziOYtCLAwvmLs13J8caTsGXVdXGA3jfqVBC3B7Anr1TyoMTzvLo51HFNMSPkLrUhluJWhCkBRbIZChR0BccCwBlUVflwqmgp2J2mqk1IsXlM87IbKzwTDYZCxjTemY3L6dj7ZCTuRDw4Yx428oHEJHSdfHtQXdERYNRrqUc0NizACAZDZD"
-GEMINI_API_KEY = "AIzaSyDkg1LFm2xqE97UhCocWY3vz6UBIDRE_HU"
-# ================================================
+PAGE_ACCESS_TOKEN = os.getenv("EAAZAqqAFmC2IBPZCUZCFY7Ks1wh3ZCVn8uZAihZCaJKRp5bB1OltYp3gnOo91ZCyD9iz4QkX31FqPn3RVWPHrX7X2ZApfO3CX6NjFuB4GDw8hrWRruKz8X7UeinWy8uNfqLGsw54EGlKIWyZCrG6DwHfU6KXZCUExEtFulbtbNbq0DtkshOnqoZCR3k1AcvbITzRH6Tb2OAOsq4F5N69mojNZCRBrpV2mgZDZD")
+VERIFY_TOKEN = os.getenv("123abc")
+GEMINI_API_KEY = os.getenv("GAIzaSyDkg1LFm2xqE97UhCocWY3vz6UBIDRE_HU")
 
 # Cấu hình Gemini
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-# ----------------- ROUTE FACEBOOK VERIFY -----------------
-@app.route("/webhook", methods=['GET'])
+@app.route("/", methods=["GET"])
+def home():
+    return "Gemini Facebook Bot đang hoạt động!"
+
+@app.route("/webhook", methods=["GET"])
 def verify():
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
     if token == VERIFY_TOKEN:
         return challenge
-    return "Invalid verification token", 403
+    return "Token không hợp lệ", 403
 
-
-# ----------------- ROUTE NHẬN TIN NHẮN -----------------
-@app.route("/webhook", methods=['POST'])
-def webhook():
+@app.route("/webhook", methods=["POST"])
+def receive_message():
     data = request.get_json()
-    print("📩 Dữ liệu nhận được:", data)
-
-    if "entry" in data:
+    if data["object"] == "page":
         for entry in data["entry"]:
-            for messaging_event in entry.get("messaging", []):
-                if "message" in messaging_event:
-                    sender_id = messaging_event["sender"]["id"]
-                    message_text = messaging_event["message"].get("text", "")
-
-                    if message_text:
-                        reply = get_gemini_reply(message_text)
+            for msg_event in entry["messaging"]:
+                if "message" in msg_event:
+                    sender_id = msg_event["sender"]["id"]
+                    if "text" in msg_event["message"]:
+                        user_message = msg_event["message"]["text"]
+                        reply = generate_reply(user_message)
                         send_message(sender_id, reply)
-
     return "OK", 200
 
-
-# ----------------- HÀM GỌI GEMINI -----------------
-def get_gemini_reply(prompt):
+def generate_reply(message_text):
     try:
+        prompt = f"Hãy trả lời tin nhắn của khách hàng một cách thân thiện, tự nhiên, dễ hiểu:\n\nKhách: {message_text}\nBot:"
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        print("❌ Lỗi Gemini:", e)
-        return "Xin lỗi, hiện tại tôi đang gặp sự cố, vui lòng thử lại sau."
+        print("Gemini error:", e)
+        return "Xin lỗi, hiện tôi đang gặp sự cố khi trả lời. ❤️"
 
-
-# ----------------- HÀM GỬI TIN NHẮN FACEBOOK -----------------
-def send_message(recipient_id, message_text):
-    url = "https://graph.facebook.com/v18.0/me/messages"
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    data = {
+def send_message(recipient_id, text):
+    url = f"https://graph.facebook.com/v17.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+    payload = {
         "recipient": {"id": recipient_id},
-        "message": {"text": message_text}
+        "message": {"text": text}
     }
-    response = requests.post(url, headers=headers, params=params, json=data)
-    print("📤 Gửi trả:", response.text)
-
-
-@app.route("/", methods=['GET'])
-def home():
-    return "✅ Facebook-Gemini bot đang hoạt động!", 200
-
+    headers = {"Content-Type": "application/json"}
+    requests.post(url, json=payload, headers=headers)
 
 if __name__ == "__main__":
-    app.run(port=10000)
+    app.run(host="0.0.0.0", port=10000)
