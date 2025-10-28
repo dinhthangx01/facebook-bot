@@ -43,12 +43,13 @@ def receive_message():
 
 def generate_reply(message_text):
     try:
-        prompt = f"Hãy trả lời tin nhắn của khách hàng một cách thân thiện, tự nhiên, dễ hiểu:\n\nKhách: {message_text}\nBot:"
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        prompt = f"Hãy trả lời tin nhắn khách hàng một cách thân thiện, tự nhiên:\n\nKhách: {message_text}\nBot:"
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
         print("Gemini error:", e)
-        return "Xin lỗi, hiện tôi đang gặp sự cố khi trả lời. ❤️"
+        return "Xin lỗi, hiện tại tôi đang gặp sự cố, vui lòng thử lại sau."
 
 def send_message(recipient_id, text):
     url = f"https://graph.facebook.com/v17.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
@@ -61,4 +62,5 @@ def send_message(recipient_id, text):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
