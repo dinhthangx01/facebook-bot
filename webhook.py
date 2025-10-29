@@ -2,6 +2,7 @@ from flask import Flask, request
 import requests, os
 from dotenv import load_dotenv
 import google.generativeai as genai
+import pandas as pd
 
 # --- TẢI BIẾN MÔI TRƯỜNG (.env hoặc Render Environment) ---
 load_dotenv()
@@ -15,6 +16,36 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # --- CẤU HÌNH GEMINI ---
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.0-flash")
+
+# --- (TÙY CHỌN) TẠO BẢNG TOKEN CHO NHIỀU PAGE ---
+# Nếu chỉ có 1 page, có thể để trống
+PAGE_TOKENS = {
+    # "467766493076266": os.getenv("PAGE_TOKEN_MOM"),
+    # "230499322269144": os.getenv("PAGE_TOKEN_GOD")
+}
+
+# --- (TÙY CHỌN) ĐỌC DỮ LIỆU SẢN PHẨM / QUOTES TỪ EXCEL ---
+excel_path = "quotes_links.xlsx"
+if os.path.exists(excel_path):
+    try:
+        df = pd.read_excel(excel_path)
+    except Exception as e:
+        print("⚠️ Không đọc được file Excel:", e)
+        df = pd.DataFrame(columns=["Quote", "Link"])
+else:
+    df = pd.DataFrame(columns=["Quote", "Link"])
+
+def find_quote_link(user_message):
+    """Tìm quote hoặc link phù hợp trong file Excel"""
+    try:
+        results = df[df["Quote"].str.contains(user_message, case=False, na=False)]
+        if not results.empty:
+            row = results.iloc[0]
+            return f"{row['Quote']}\n👉 Link sản phẩm: {row['Link']}"
+        return None
+    except Exception as e:
+        print("⚠️ Lỗi tìm trong Excel:", e)
+        return None
 
 # --- ROUTE KIỂM TRA HOẠT ĐỘNG ---
 @app.route("/", methods=["GET"])
@@ -54,11 +85,16 @@ def receive_message():
                     send_message(sender_id, reply_text, page_id)
     return "OK", 200
 
-
 # --- XỬ LÝ TRẢ LỜI BẰNG GEMINI ---
 def generate_reply(message_text):
     try:
-        prompt = f"Hãy trả lời khách hàng một cách thân thiện, tự nhiên và ngắn gọn:\n\nKhách: {message_text}\nBot:"
+        prompt = f"""
+        Bạn là chuyên viên tư vấn bán hàng thân thiện của Heaven Shop.
+        Hãy trả lời khách hàng tự nhiên, cảm xúc và ngắn gọn.
+        Nếu khách hỏi về sản phẩm, hãy gợi ý nhẹ nhàng, không ép mua.
+
+        Khách: {message_text}
+        Bot:"""
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
@@ -83,9 +119,6 @@ def send_message(recipient_id, text, page_id=None):
     except Exception as e:
         print("⚠️ Send error:", e)
 
-
 # --- CHẠY ỨNG DỤNG FLASK ---
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
-
